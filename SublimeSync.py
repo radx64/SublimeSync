@@ -32,14 +32,14 @@ class SublimeSyncCommand(sublime_plugin.ApplicationCommand):
         return self.get_setting("repository_url")
 
     def get_credentials_repository_url(self):
-        repository_url =  self.get_setting("protocol") + '://' 
+        repository_url =  self.get_setting("protocol") + '://'
         repository_url += self.get_setting("username") + ':'
         repository_url += self.get_setting("token") + '@'
         repository_url += self.get_repository_url()
         return repository_url
 
     def get_branch_name(self):
-        return self.get_setting("branch")      
+        return self.get_setting("branch")
 
     def first_run(self):
         if len(self.get_repository_url()) == 0:
@@ -66,6 +66,7 @@ class SublimeSyncCommand(sublime_plugin.ApplicationCommand):
             git_push()
 
     def run_process(self, args, cwd):
+        print(args)
         process = subprocess.Popen(args, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
         stdoutdata, stderrdata = process.communicate()
 
@@ -78,28 +79,36 @@ class SublimeSyncCommand(sublime_plugin.ApplicationCommand):
         return False
 
     def get_packages_path(self):
-        # return sublime.packages_path() + os.sep + 'User'
-        return "d:/" # for testing purpose only
+        return sublime.packages_path()
+        #return "d:/" # for testing purpose only
 
     def git_command(self, args, cwd):
-        self.run_process(['git'] + args, cwd)
+        self.run_process(['git ' + args], cwd)
 
     def clone(self):
         sublime.status_message("Cloning...")
-        self.git_command(["clone", self.get_credentials_repository_url()], "d:/")
+        self.git_command("clone " + self.get_credentials_repository_url() + " User", self.get_packages_path())
         sublime.status_message("Cloning...DONE")
+
+    def forceClone(self):
+        try:
+            shutil.rmtree(self.get_packages_path() + os.sep + 'User');
+        except FileNotFoundError:
+            pass
+
+        self.clone()
 
     def pull(self):
         sublime.status_message("Pulling...")
-        self.git_command(["pull"], "d:/SublimeSettings")
-        sublime.status_message("Pulling...DONE")  
+        self.git_command(["pull"], self.get_packages_path())
+        sublime.status_message("Pulling...DONE")
 
     def commit(self):
         sublime.status_message("Commiting and pushing...")
-        self.git_command(["add", "*"], "d:/SublimeSettings")
-        self.git_command(["commit", "-m", 'update'], "d:/SublimeSettings")
-        self.git_command(["push"], "d:/SublimeSettings")
-        sublime.status_message("Commiting and pushing...DONE") 
+        self.git_command("add *", "d:/SublimeSettings")
+        self.git_command("commit -m update", "d:/SublimeSettings")
+        self.git_command("push", "d:/SublimeSettings")
+        sublime.status_message("Commiting and pushing...DONE")
 
 
     def run(self):
@@ -107,9 +116,9 @@ class SublimeSyncCommand(sublime_plugin.ApplicationCommand):
         print("Will sync: " + user_packages_path)
         #self.first_run()
 
-        #sublime.set_timeout_async(self.clone, 0)
+        sublime.set_timeout_async(self.forceClone, 0)
         #sublime.set_timeout_async(self.pull, 0)
-        sublime.set_timeout_async(self.commit, 0)
+        #sublime.set_timeout_async(self.pull, 0)
 
         # #shutil.copytree(user_packages_path, "D:\\temp")
         # if not isGitInstalled():
